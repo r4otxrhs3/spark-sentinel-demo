@@ -1,0 +1,70 @@
+name: Performance
+
+# On every pull request: run the Spark job on the base branch and on the PR, on the same
+# runner, then let Spark Sentinel compare the two runs and comment on the PR.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write # to comment
+
+concurrency:
+  group: performance-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v6
+        with:
+          path: pr
+          persist-credentials: false
+
+      - name: Check out the base branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pr/requirements.txt
+
+      - run: pip install -r pr/requirements.txt
+
+      # The first Spark run on a fresh machine is slow whatever the code (cold caches).
+      # A throwaway session takes that hit, so the base run isn't the unlucky one.
+      - name: Warm up Spark
+        run: python -c "from pyspark.sql import SparkSession as S; s = S.builder.master('local[2]').getOrCreate(); s.range(1000).count(); s.stop()"
+
+      - name: Run the job on the base branch
+        working-directory: base
+        env:
+          SPARK_EVENTS: ${{ runner.temp }}/events/base
+        run: python job/daily_report.py
+
+      - name: Run the job on the pull request
+        working-directory: pr
+        env:
+          SPARK_EVENTS: ${{ runner.temp }}/events/pr
+        run: python job/daily_report.py
+
+      - name: Compare with Spark Sentinel
+        uses: r4otxrhs3/spark-sentinel@v0.2.0
+        with:
+          baseline: ${{ runner.temp }}/events/base
+          new: ${{ runner.temp }}/events/pr
+          config: pr/sentinel.toml
+          fail-on: slower

@@ -1,0 +1,13 @@
+diff --git a/job/daily_report.py b/job/daily_report.py
+index e3086f1..f47346f 100644
+--- a/job/daily_report.py
++++ b/job/daily_report.py
+@@ -75,7 +75,7 @@ def main() -> None:
+         orders(spark)
+         .join(users(spark), "user_id")
+         .groupBy("segment", "country")
+-        .agg(F.sum("amount").alias("revenue"), F.count("*").alias("orders"))
++        .agg(F.sum("amount").alias("revenue"), F.count("*").alias("order_count"))
+         .write.mode("overwrite")
+         .parquet(str(out / "revenue"))
+     )

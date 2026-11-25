@@ -1,0 +1,13 @@
+diff --git a/job/daily_report.py b/job/daily_report.py
+index e3086f1..590c407 100644
+--- a/job/daily_report.py
++++ b/job/daily_report.py
+@@ -35,6 +35,8 @@ def spark_session() -> SparkSession:
+         .config("spark.eventLog.enabled", "true")
+         .config("spark.eventLog.dir", events.as_uri())
+         .config("spark.sql.shuffle.partitions", "16")
++        # Never broadcast: a broadcast of a big table ran the driver out of memory once.
++        .config("spark.sql.autoBroadcastJoinThreshold", "-1")
+         .config("spark.ui.enabled", "false")
+         .getOrCreate()
+     )

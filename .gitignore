@@ -1,0 +1,5 @@
+spark-events/
+out/
+.sentinel/
+__pycache__/
+.venv/

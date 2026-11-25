@@ -1,0 +1,10 @@
+# Spark Sentinel settings for this repository's performance check.
+
+# The CI job is small, so use thresholds in seconds and megabytes, not minutes and gigabytes.
+profile = "laptop"
+
+[diff]
+# A query must change by 30% AND by 1.5 s to count. GitHub's shared runners are noisier
+# than a laptop, so the time threshold is a little above the laptop profile's 1 s.
+min_change_pct = 30
+min_time_ms = 1500
