@@ -19,6 +19,7 @@ from pathlib import Path
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+from pyspark.sql.types import StringType
 
 ORDERS = 3_000_000
 USERS = 100_000
@@ -62,8 +63,12 @@ def users(spark: SparkSession):
     )
 
 
-def size_band(amount):
-    return F.when(amount < 50, "small").when(amount < 250, "medium").otherwise("large")
+@F.udf(returnType=StringType(), useArrow=False)
+def size_band(amount: float) -> str:
+    """Same bands as the pricing service, so both stay in sync."""
+    if amount < 50:
+        return "small"
+    return "medium" if amount < 250 else "large"
 
 
 def main() -> None:
